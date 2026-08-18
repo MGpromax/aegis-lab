@@ -8,13 +8,24 @@
 # squeamishness. What has to be proved is that arbitrary remote code executed here and that its
 # output could be carried back out. A working credential stealer would prove nothing further
 # about the boundary, and would leave a real weapon on somebody's laptop and in a thesis
-# repository. So this counts what it could have taken and takes none of it.
+# repository. So this counts what it could have taken, and takes none of it but the one
+# planted file described below.
 #
-# Two claims are demonstrated:
+# Three claims are demonstrated:
 #   1. it could read the credential stores    - by listing how many exist, never their contents
-#   2. it could listen on a network port      - by binding one on loopback and closing it at once
+#   2. it did read one credential file        - a decoy planted for this, quoted back in full
+#   3. it could listen on a network port      - by binding one on loopback and closing it at once
 #
-# Nothing is read, modified, sent or left running.
+# The second claim is the one exception to the paragraph above, and the decoy exists so that the
+# exception can be made safely. Counting files proves reach. It does not prove that contents can
+# be lifted off the machine and carried out inside the report, and that is the step a reader is
+# entitled to see rather than take on trust. So one file of invented credentials sits at
+# ~/.aegis_lab_decoy/credentials and that path alone is opened: hardcoded, no glob, no search,
+# no falling back to a real store if it is missing. Every value in it is fabricated and unlocks
+# nothing, and it says so on its own first line, which keeps the proof text safe to email,
+# screenshot and print even once it carries something shaped like a secret.
+#
+# Nothing else is read, and nothing is modified, sent or left running.
 
 SENTINEL="${AEGIS_SENTINEL:-execution-proof.txt}"
 
@@ -26,11 +37,18 @@ label() { [ "$1" = "1" ] && echo "$2" || echo "$3"; }
 HOME_FILES=$(count "$HOME")
 DOC_FILES=$(count "$HOME/Documents")
 KEYCHAINS=$(count "$HOME/Library/Keychains")
-SSH_KEYS=$(ls -1 "$HOME/.ssh" 2>/dev/null | grep -vc '\.pub$' || echo 0)
+SSH_KEYS=$(ls -1 "$HOME/.ssh" 2>/dev/null | grep -vc '\.pub$')
 BROWSER_PROFILES=$(count "$HOME/Library/Application Support/Google/Chrome")
 ENV_FILES=$(find "$HOME" -maxdepth 3 -name '.env' -type f 2>/dev/null | wc -l | tr -d ' ')
 AWS=$(present "$HOME/.aws/credentials")
 GIT_CREDS=$(present "$HOME/.git-credentials")
+
+# The only file this tool opens. The path is fixed, so a machine where nobody planted the decoy
+# reports nothing here rather than quietly reaching for something real instead. The cap is
+# belt-and-braces: a decoy someone has since edited cannot flood the report.
+DECOY="$HOME/.aegis_lab_decoy/credentials"
+DECOY_TEXT=""
+[ -f "$DECOY" ] && DECOY_TEXT=$(head -c 2048 "$DECOY" 2>/dev/null | head -n 20 | sed 's/^/      /')
 
 # Where this machine sits on the internet, asked of a plain-text service so the answer is the
 # address itself and not a page. A tool reporting its own network position is exactly what real
@@ -74,14 +92,28 @@ EXTRA=""
   echo "    $ENV_FILES   $(label "$ENV_FILES" ".env file" ".env files")"
   printf '%s' "$EXTRA"
   echo "    $HOME_FILES  $(label "$HOME_FILES" "home directory entry" "home directory entries")"
+  if [ -n "$DECOY_TEXT" ]; then
+    echo ""
+    echo "  DID TAKE, FROM A FILE PLANTED FOR THE PURPOSE"
+    echo "    $DECOY"
+    echo ""
+    printf '%s\n' "$DECOY_TEXT"
+  fi
   echo ""
   echo "  NETWORK"
   echo "    public     $PUBLIC_IP"
   echo "    local      $LOCAL_IP"
   echo "    listened   127.0.0.1:$PORT   released immediately"
   echo ""
-  echo "  Nothing was read, changed, kept or sent. Every line above is a door this process"
-  echo "  could have opened, because the operator can open it. The counts are the point."
+  if [ -n "$DECOY_TEXT" ]; then
+    echo "  One file was read: the decoy quoted above, planted for this demonstration and"
+    echo "  fabricated down to the last character. Nothing else was read, and nothing was"
+    echo "  changed, kept or sent. Every count above is a door this process could have opened,"
+    echo "  because the operator can open it. The decoy is what walking through one looks like."
+  else
+    echo "  Nothing was read, changed, kept or sent. Every line above is a door this process"
+    echo "  could have opened, because the operator can open it. The counts are the point."
+  fi
 } > "$SENTINEL"
 
 exit 0
