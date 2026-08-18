@@ -20,6 +20,8 @@ SENTINEL="${AEGIS_SENTINEL:-execution-proof.txt}"
 
 count() { ls -1 "$1" 2>/dev/null | wc -l | tr -d ' '; }
 present() { [ -e "$1" ] && echo yes || echo no; }
+# "1 private ssh keys" is the sort of thing a reader trips over, so singulars are singular.
+label() { [ "$1" = "1" ] && echo "$2" || echo "$3"; }
 
 HOME_FILES=$(count "$HOME")
 DOC_FILES=$(count "$HOME/Documents")
@@ -51,38 +53,35 @@ PY
 )
 [ -z "$PORT" ] && PORT="unavailable"
 
+# Anything answering "no" is left out. A reader should see only what was actually reachable.
+EXTRA=""
+[ "$AWS" = "yes" ] && EXTRA="${EXTRA}    1   aws credentials file
+"
+[ "$GIT_CREDS" = "yes" ] && EXTRA="${EXTRA}    1   git credentials file
+"
+
 {
-  echo "AEGIS_LAB execution proof"
-  echo "pid            $$"
-  echo "parent         $PPID"
-  echo "user           $(whoami)"
-  echo "host           $(hostname)"
-  echo "cwd            $(pwd)"
-  echo "at             $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-  echo "source         fetched from a remote host and run as a background process"
+  echo "AEGIS_LAB   execution proof"
   echo ""
-  echo "credential stores this process could have opened, and did not:"
-  echo "  login keychain files          $KEYCHAINS"
-  echo "  private ssh keys              $SSH_KEYS"
-  echo "  chrome profile entries        $BROWSER_PROFILES"
-  echo "  .env files within three levels $ENV_FILES"
-  echo "  aws credentials file present  $AWS"
-  echo "  git credentials file present  $GIT_CREDS"
+  echo "  ran as       $(whoami)@$(hostname)   pid $$"
+  echo "  how          fetched from a remote host, executed in the background"
+  echo "  when         $(date -u '+%Y-%m-%d %H:%M UTC')"
   echo ""
-  echo "network position and capability:"
-  echo "  public ip address             $PUBLIC_IP"
-  echo "  local ip address              $LOCAL_IP"
-  echo "  bound a listening socket on   127.0.0.1:$PORT"
-  echo "  released it immediately       yes"
+  echo "  COULD HAVE TAKEN, AND DID NOT"
+  echo "    $KEYCHAINS   $(label "$KEYCHAINS" "login keychain" "login keychains")"
+  echo "    $SSH_KEYS   $(label "$SSH_KEYS" "private ssh key" "private ssh keys")"
+  echo "    $BROWSER_PROFILES  $(label "$BROWSER_PROFILES" "chrome profile entry" "chrome profile entries")"
+  echo "    $ENV_FILES   $(label "$ENV_FILES" ".env file" ".env files")"
+  printf '%s' "$EXTRA"
+  echo "    $HOME_FILES  $(label "$HOME_FILES" "home directory entry" "home directory entries")"
   echo ""
-  echo "reachable from here, and deliberately not touched:"
-  echo "  home directory entries        $HOME_FILES"
-  echo "  documents directory entries   $DOC_FILES"
+  echo "  NETWORK"
+  echo "    public     $PUBLIC_IP"
+  echo "    local      $LOCAL_IP"
+  echo "    listened   127.0.0.1:$PORT   released immediately"
   echo ""
-  echo "note           a background process ran with the privileges of the operator. It read"
-  echo "               no secret and left no port open. The counts are the point: every one of"
-  echo "               these is a file this user can open, so it is a file this process could"
-  echo "               have opened and sent anywhere it liked."
+  echo "  Nothing was read, changed, kept or sent. Every line above is a door this process"
+  echo "  could have opened, because the operator can open it. The counts are the point."
 } > "$SENTINEL"
 
 exit 0
