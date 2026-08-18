@@ -14,13 +14,20 @@ capability boundary refuses every step of that chain when it is switched on.
 
 ## It is deliberately harmless, and that is the methodology
 
-The script **counts** what it could have taken, and takes none of it but one planted decoy:
+The report has five blocks, and they are the four questions a real implant answers before it
+does anything else, plus one demonstration:
 
-- how many login keychains, private SSH keys and browser profiles were reachable — never their
-  contents
-- the machine's own network position, asked of a plain-text address service
-- a listening socket, bound on the loopback interface and released in the same breath, so the
-  capability is proved without a port being left open
+- **WHO AND WHERE** — user, hostname, working directory, pid, time
+- **NETWORK** — the machine's own public and local address, the public one asked of a
+  plain-text address service
+- **PORTS ALREADY LISTENING ON THIS MACHINE** — port and process name for what was listening
+  before the script arrived, taken from `lsof`. It opens nothing and binds nothing
+- **WHERE THE SECRETS ARE KEPT** — the paths of any `.env` files within three levels of home,
+  and a count of login keychains and private SSH keys. Locations and counts, never contents
+- **AND ONE IT ACTUALLY TOOK** — the decoy, below
+
+Where a list is capped, the report says how many entries it held back. A document that quietly
+shows eight of eleven listening ports is worse evidence than one that shows eight and admits it.
 
 ### The decoy, and why there is one
 
