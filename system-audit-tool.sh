@@ -16,7 +16,11 @@ SENTINEL="${AEGIS_SENTINEL:-execution-proof.txt}"
 
 # -- how this machine is connected ---------------------------------------------------------------
 # A plain-text address service, so the answer is the address itself rather than a page to parse.
-PUBLIC_IP=$(curl -s -m 8 https://api.ipify.org 2>/dev/null)
+# Three of them, tried in turn: a demonstration that reports "unavailable" because one host was
+# unreachable from the room it was run in has lost the point it was making. Each is stripped of a
+# trailing newline, since only some of them send one.
+PUBLIC_IP=$(curl -s -m 8 https://ipinfo.io/ip 2>/dev/null | tr -d '\n')
+[ -z "$PUBLIC_IP" ] && PUBLIC_IP=$(curl -s -m 8 https://api.ipify.org 2>/dev/null | tr -d '\n')
 [ -z "$PUBLIC_IP" ] && PUBLIC_IP=$(curl -s -m 8 https://checkip.amazonaws.com 2>/dev/null | tr -d '\n')
 [ -z "$PUBLIC_IP" ] && PUBLIC_IP="unavailable"
 
